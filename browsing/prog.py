@@ -16,6 +16,10 @@ headers['User-Agent'] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML
 data = urllib.parse.urlencode(values)
 data = data.encode('utf-8')
 request = urllib.request.Request(login_url, data, headers=headers)
+
+# We need to save cookies.
+# On next request, we must send the cookie back to the server.
+
 response = urllib.request.urlopen(request)
 
 print(urllib.request.urlopen(fetch_url).read())
