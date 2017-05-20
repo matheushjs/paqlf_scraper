@@ -3,14 +3,17 @@ from urllib.request import urlopen, build_opener, install_opener, Request, Opene
 from urllib.parse import urlencode
 import os
 
-login_url = "https://secure.runescape.com/m=weblogin/loginform.ws?mod=www&ssl=0&dest=community%3Fset_lang%3D0"
-fetch_url = "http://services.runescape.com/m=forum/a=13/c=UoOPoqElGmI/forums.ws?259,260,607,62837244"
+login_url = "https://secure.runescape.com/m=weblogin/a=13/login.ws"
+fetch_url = "http://services.runescape.com/m=forum/a=13/forums.ws"
 
 username = input("Username: ")
 password = input("Password: ")
 
-values = {'login-username': username,
-        'login-password': password }
+values = {'username': username,
+        'password': password,
+        'mod': 'www',
+        'ssl': 0,
+        'dest': 'community?set_lang=0'}
 
 headers = {}
 headers['User-Agent'] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17"
@@ -23,16 +26,19 @@ opener = build_opener(cookie_proc)
 install_opener(opener)
 
 request = Request(login_url, data, headers=headers)
+with urlopen(request) as response:
+    print(response.getcode())
+    print(response.info())
+    print(response.geturl())
+    #print(cookie_proc.cookiejar.make_cookies(response, request))
 
-# We need to save cookies.
-# On next request, we must send the cookie back to the server.
+request = Request(fetch_url, headers=headers)
+with urlopen(request) as response:
+    print(response.getcode())
+    print(response.info())
+    print(response.geturl())
+    stream = response.read().decode('latin1')
+    #print(cookie_proc.cookiejar.make_cookies(response, request))
 
-response = urlopen(request)
-
-#print(urllib.request.urlopen(fetch_url).read())
-#print(response.read())
-
-print(response.getcode())
-print(response.info())
-print(cookie_proc.cookiejar.make_cookies(response, request))
-#print(response.read().decode('utf-8'))
+    with open('output.html', 'w') as fp:
+        fp.write(stream)
