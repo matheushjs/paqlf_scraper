@@ -1,5 +1,6 @@
 #Used to make requests
 import urllib.request
+import os
 
 login_url = "https://secure.runescape.com/m=weblogin/loginform.ws?mod=www&ssl=0&dest=community%3Fset_lang%3D0"
 fetch_url = "http://services.runescape.com/m=forum/a=13/c=UoOPoqElGmI/forums.ws?259,260,607,62837244"
@@ -22,4 +23,8 @@ request = urllib.request.Request(login_url, data, headers=headers)
 
 response = urllib.request.urlopen(request)
 
-print(urllib.request.urlopen(fetch_url).read())
+#print(urllib.request.urlopen(fetch_url).read())
+#print(response.read())
+
+open("output.html", 'w').write( response.read().decode('utf-8') )
+os.system('google-chrome output.html')
