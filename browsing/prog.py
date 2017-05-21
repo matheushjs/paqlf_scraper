@@ -4,7 +4,6 @@ from urllib.parse import urlencode
 import os
 
 login_url = "https://secure.runescape.com/m=weblogin/a=13/login.ws"
-fetch_url = "http://services.runescape.com/m=forum/a=13/forums.ws"
 
 username = input("Username: ")
 password = input("Password: ")
@@ -27,10 +26,14 @@ install_opener(opener)
 
 request = Request(login_url, data, headers=headers)
 with urlopen(request) as response:
-    print(response.getcode())
-    print(response.info())
     print(response.geturl())
-    #print(cookie_proc.cookiejar.make_cookies(response, request))
+    full = response.read().decode('latin1')
+
+import re
+patt = re.compile(r'http://services\.runescape\.com/m=forum/a=13/c=[^/]*/forums\.ws\?jptg=ia\&amp;jptv=navbar')
+mat = re.findall(patt, full)
+fetch_url = mat[0]
+print(fetch_url)
 
 request = Request(fetch_url, headers=headers)
 with urlopen(request) as response:
