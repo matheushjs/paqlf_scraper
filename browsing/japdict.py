@@ -2,7 +2,6 @@ from urllib.request import *
 from urllib.parse import *
 
 lookup = input("Romaji word to lookup: ")
-lookup = 'chotto'
 
 url1 = "http://nihongo.monash.edu/cgi-bin/wwwjdic?1E"
 
