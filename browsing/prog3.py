@@ -20,19 +20,19 @@ values = {'username': username,
         'ssl': 0,
         'dest': 'community?set_lang=0'}
 
-s = requests.Session()
-r = s.post(login_url, headers=headers, data=values)
-print(r.url)
-
-import re
-patt = re.compile(r'http://services\.runescape\.com/m=forum/a=13/c=[^/]*/forums\.ws\?jptg=ia\&amp;jptv=navbar')
-mat = re.findall(patt, r.text)
-fetch_url = mat[0]
-print(fetch_url)
-
-r = s.get(fetch_url, headers=headers)
-print(r.status_code)
-print(r.url)
-
-with open('output.html', 'w') as fp:
-    fp.write(r.text) # WORKS
+with requests.Session() as s:
+    r = s.post(login_url, headers=headers, data=values)
+    print(r.url)
+    
+    import re
+    patt = re.compile(r'http://services\.runescape\.com/m=forum/a=13/c=[^/]*/forums\.ws\?jptg=ia\&amp;jptv=navbar')
+    mat = re.findall(patt, r.text)
+    fetch_url = mat[0]
+    print(fetch_url)
+    
+    r = s.get(fetch_url, headers=headers)
+    print(r.status_code)
+    print(r.url)
+    
+    with open('output.html', 'w') as fp:
+        fp.write(r.text) # WORKS
