@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
     QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QSizePolicy
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 
 class ElfWindow(QWidget):
     def __init__(self):
@@ -13,7 +14,11 @@ class ElfWindow(QWidget):
         self.center()
 
         # Set form header text
-        headerlbl = QLabel('Digite as informações de <i>log in</i> para o site da Allims')
+        headerlbl = QLabel('Digite as informações de <i>log in</i> para o <i>website</i> da Allims')
+        font = QFont()
+        font.setPointSize(12)
+        font.setStyleHint(QFont.TypeWriter)
+        headerlbl.setFont(font)
 
         # Set button
         btn = QPushButton("Iniciar")
@@ -45,11 +50,13 @@ class ElfWindow(QWidget):
         txtbox = QVBoxLayout()
         txtbox.addWidget(utxt)
         txtbox.addWidget(ptxt)
-        txtbox.setContentsMargins(0, 10, 0, 10)
 
         formbox = QHBoxLayout()
+        formbox.addStretch(1)
         formbox.addLayout(lblbox)
         formbox.addLayout(txtbox)
+        formbox.addStretch(1)
+        formbox.setContentsMargins(0, 20, 0, 10)
 
         # Fill main box
         main_box = QVBoxLayout(self)
