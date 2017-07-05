@@ -1,7 +1,9 @@
 #Used to make requests
-from urllib.request import urlopen, build_opener, install_opener, Request, OpenerDirector, HTTPCookieProcessor
-from urllib.parse import urlencode
 import os
+import re
+from urllib.parse import urlencode
+from urllib.request import urlopen, build_opener, install_opener, Request, OpenerDirector, HTTPCookieProcessor
+
 
 login_url = "https://secure.runescape.com/m=weblogin/a=13/login.ws"
 
@@ -29,7 +31,6 @@ with urlopen(request) as response:
     print(response.geturl())
     full = response.read().decode('latin1')
 
-import re
 patt = re.compile(r'http://services\.runescape\.com/m=forum/a=13/c=[^/]*/forums\.ws\?jptg=ia\&amp;jptv=navbar')
 mat = re.findall(patt, full)
 fetch_url = mat[0]
