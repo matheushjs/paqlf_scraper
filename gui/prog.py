@@ -15,6 +15,11 @@ class ElfWindow(QWidget):
         # Set form header text
         headerlbl = QLabel('Digite as informações de <i>log in</i> para o site da Allims')
 
+        # Set button
+        btn = QPushButton("Iniciar")
+        btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        btn.clicked.connect( lambda: print("hey") )
+
         # Set form
         ulbl = QLabel('Usuário')
         ulbl.setAlignment(Qt.AlignCenter)
@@ -22,7 +27,8 @@ class ElfWindow(QWidget):
         utxt = QLineEdit()
         utxt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         utxt.setMaxLength(25)
-        
+        utxt.returnPressed.connect(btn.click)
+
         plbl = QLabel('Senha')
         plbl.setAlignment(Qt.AlignCenter)
         plbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
@@ -30,6 +36,7 @@ class ElfWindow(QWidget):
         ptxt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         ptxt.setMaxLength(25)
         ptxt.setEchoMode(QLineEdit.Password)
+        ptxt.returnPressed.connect(btn.click)
 
         lblbox = QVBoxLayout()
         lblbox.addWidget(ulbl)
@@ -44,10 +51,7 @@ class ElfWindow(QWidget):
         formbox.addLayout(lblbox)
         formbox.addLayout(txtbox)
 
-        # Set button
-        btn = QPushButton("Iniciar")
-        btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-
+        # Fill main box
         main_box = QVBoxLayout(self)
         main_box.setAlignment(Qt.AlignCenter)
         main_box.addWidget(headerlbl)
