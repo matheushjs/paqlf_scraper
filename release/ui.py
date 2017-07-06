@@ -176,6 +176,7 @@ class ElfWindow(QWidget):
         self.thread.finished.connect(self.joinThread)
         self.thread.onProgress.connect(self.updateWorkLabel)
 
+        self.setWindowTitle('PAQLF Scraper')
         self.show()
         self.showInfoBox(False)
 
