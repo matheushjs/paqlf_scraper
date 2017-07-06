@@ -1,6 +1,11 @@
 from bs4 import BeautifulSoup
 import csv
 
+class Webpage:
+    def __init__(self):
+        self.name
+        self.url
+
 class Processor:
     def __init__(self):
         pass
@@ -27,3 +32,8 @@ class Processor:
             writer = csv.writer(fp)
             writer.writerow(["\n".join(i) for i in headers])
             writer.writerows(content)
+
+    def extractPages(self, url):
+        pages = []
+        # Should return a list of WebPages
+        return pages
