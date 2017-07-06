@@ -1,6 +1,7 @@
 import sys, time
 from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
-    QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QSizePolicy
+    QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QSizePolicy, \
+    QProgressBar
 from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 
@@ -120,21 +121,23 @@ class ElfWindow(QWidget):
         # Set info box
         login_lbl = QLabel("")
         login_lbl.setAlignment(Qt.AlignCenter)
-        login_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         count_lbl = QLabel("")
         count_lbl.setAlignment(Qt.AlignCenter)
-        count_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         work_lbl = QLabel("")
         work_lbl.setAlignment(Qt.AlignCenter)
-        work_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        progress = QProgressBar()
+        progress.setAlignment(Qt.AlignCenter)
+        #progress.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         infobox = QVBoxLayout()
         infobox.setAlignment(Qt.AlignCenter)
         infobox.addWidget(login_lbl)
         infobox.addWidget(count_lbl)
         infobox.addWidget(work_lbl)
+        infobox.addWidget(progress)
 
         # Fill main box
         main_box = QVBoxLayout(self)
@@ -155,6 +158,7 @@ class ElfWindow(QWidget):
         self.login_lbl = login_lbl
         self.count_lbl = count_lbl
         self.work_lbl = work_lbl
+        self.progress = progress
 
         # Set up worker thread
         self.thread = Worker()
@@ -183,6 +187,7 @@ class ElfWindow(QWidget):
         self.login_lbl.setVisible(show)
         self.count_lbl.setVisible(show)
         self.work_lbl.setVisible(show)
+        self.progress.setVisible(show)
 
     def onClick(self):
         self.showLogBox(False)
@@ -219,6 +224,7 @@ class ElfWindow(QWidget):
     @pyqtSlot(int)
     def updateWorkLabel(self, num):
         self.work_lbl.setText(self.work_string.format(num))
+        self.progress.setValue(num)
 
     def finishCountWork(self):
         # Process all webpages in another thread, calling updateProgress() when convenient
@@ -228,6 +234,10 @@ class ElfWindow(QWidget):
         self.work_string = "Processando páginas... ({}/{})".format("{}", count)
         self.updateWorkLabel(0)
         self.work_lbl.show()
+        self.progress.show()
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(count)
+        self.progress.setValue(0)
         self.thread.processPages()
 
     def finishProcessing(self):
