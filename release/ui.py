@@ -5,6 +5,8 @@ from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
 from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 
+from browser import Browser, NetworkError, AuthError
+
 class Worker(QThread):
     DO_NOTHING = 0
     LOG_IN = 1
