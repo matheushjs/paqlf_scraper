@@ -1,7 +1,7 @@
 import sys, time
 from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
     QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QSizePolicy, \
-    QProgressBar
+    QProgressBar, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 
@@ -17,29 +17,32 @@ class Worker(QThread):
         QThread.__init__(self, parent)
         
         self.shouldExit = False
-        self.loginSuccess = False
+        self.success = False
         self.workCount = 0
         self.type = Worker.DO_NOTHING
 
     def logIn(self, user, password):
         self.type = Worker.LOG_IN
-        self.loginSuccess = False
+        self.success = False
         self.start()
 
     def countWork(self):
         self.type = Worker.COUNT_WORK
         self.workCount = 0
+        self.success = False
         self.start()
 
-    def processPages(self):
+    def processPages(self, path):
         self.type = Worker.DO_WORK
+        self.path = path
+        self.success = False
         self.start()
 
     def getState(self):
         return self.type
 
-    def getLoginSuccess(self):
-        return self.loginSuccess
+    def getSuccess(self):
+        return self.success
 
     def getWorkCount(self):
         return self.workCount
@@ -49,14 +52,16 @@ class Worker(QThread):
             time.sleep(1)
         elif self.type == Worker.LOG_IN:
             time.sleep(1)
-            self.loginSuccess = True
+            self.success = True
         elif self.type == Worker.COUNT_WORK:
             time.sleep(1)
             self.workCount = 5
+            self.success = True
         elif self.type == Worker.DO_WORK:
             for i in range(self.workCount):
                 time.sleep(1)
                 self.onProgress.emit(i+1)
+            self.success = True
         else:
             pass
 
@@ -79,6 +84,7 @@ class ElfWindow(QWidget):
         font.setPointSize(12)
         font.setStyleHint(QFont.TypeWriter)
         headerlbl.setFont(font)
+        headerlbl.setAlignment(Qt.AlignCenter)
 
         # Set button
         btn = QPushButton("Iniciar")
@@ -148,6 +154,9 @@ class ElfWindow(QWidget):
         main_box.addWidget(btn)
         main_box.setAlignment(btn, Qt.AlignCenter)
 
+        # Create alert widget
+        self.alert = QMessageBox()
+
         # Get the due instance variables. I hate typing 'self' all the time.
         self.plbl = plbl
         self.ulbl = ulbl
@@ -189,6 +198,10 @@ class ElfWindow(QWidget):
         self.work_lbl.setVisible(show)
         self.progress.setVisible(show)
 
+    def alertUser(self, string):
+        self.alert.setText(string)
+        self.alert.exec()
+
     def onClick(self):
         self.showLogBox(False)
         
@@ -213,13 +226,17 @@ class ElfWindow(QWidget):
         self.utxt.clear()
         self.ptxt.clear()
 
-        if self.thread.getLoginSuccess():
+        if self.thread.getSuccess():
             self.login_lbl.setText("<i>Log in</i> realizado com sucesso.")
             self.count_lbl.setText("Contando a quantidade de trabalho a ser realizada...")
             self.count_lbl.show()
             self.thread.countWork()
         else:
-            self.loginlbl.setText("Falha ao realizar o <i>log in</i>.")
+            self.showInfoBox(False)
+            self.showLogBox(True)
+            self.alertUser("<h3>Falha ao realizar o <i>log in</i></h3>"
+                    + "<p>Verifique seu usuário e senha.</p>"
+                    + "<p>Verifique também a sua conexão.</p>")
 
     @pyqtSlot(int)
     def updateWorkLabel(self, num):
@@ -227,8 +244,13 @@ class ElfWindow(QWidget):
         self.progress.setValue(num)
 
     def finishCountWork(self):
-        # Process all webpages in another thread, calling updateProgress() when convenient
-        # Call finishProcessing() after thread runs
+        if not self.thread.getSuccess():
+            self.showInfoBox(False)
+            self.showLogBox(True)
+            self.alertUser("<h3>Falha ao realizar a contagem de páginas a processar</h3>"
+                    + "<p>Verifique a sua conexão.</p>")
+            return
+
         count = self.thread.getWorkCount()
         self.count_lbl.setText("Número de páginas a serem processadas: {}".format(count))
         self.work_string = "Processando páginas... ({}/{})".format("{}", count)
@@ -238,11 +260,21 @@ class ElfWindow(QWidget):
         self.progress.setMinimum(0)
         self.progress.setMaximum(count)
         self.progress.setValue(0)
-        self.thread.processPages()
+
+        while True:
+            dirpath = QFileDialog.getExistingDirectory(self, "Diretório para salvar as planilhas.")
+            if not dirpath:
+                self.alertUser("<h3>Selecione um diretório, por favor.</h3>")
+            else: break
+        
+        self.thread.processPages(dirpath)
 
     def finishProcessing(self):
         self.showInfoBox(False)
         self.showLogBox(True)
+        if not self.thread.getSuccess():
+            self.alertUser("<h3>Falha ao processar as páginas do <i>website</i></h3>"
+                    + "<p>Verifique a sua conexão.</p>")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
