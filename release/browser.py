@@ -4,14 +4,18 @@ import os
 from processor import Processor, Webpage
 
 class NetworkError(Exception):
+    """Convenient exception to show when there is no internet connection"""
     def __init__(self):
         super().__init__(self)
 
 class AuthError(Exception):
+    """Convenient exception to show when the user/pass authentication was wrong"""
     def __init__(self):
         super().__init__(self)
 
 class Browser:
+    """Class for browing around the Allims website"""
+
     login_url = "http://administrador.paqlf.allims.com.br/"
 
     def __init__(self):
@@ -27,6 +31,10 @@ class Browser:
         self.urldict = {}
     
     def logIn(self, user, pwd):
+        """Attempts to log in Allims website.
+        Exceptions:
+            NetworkError: if there is no network connection
+            AuthError: if user/pass combination is wrong"""
         self.values['email'] = user
         self.values['senha'] = pwd
 
@@ -40,6 +48,9 @@ class Browser:
             raise AuthError()
 
     def countWork(self):
+        """Fetches all webpages that need to be processed, and return the amount fetched.
+        Exceptions:
+            NetworkError: if there is no network connection"""
         self.urldict = {} # Reset the variable
         
         # There should be 4 root pages
@@ -50,6 +61,11 @@ class Browser:
         return sum( [ len(i) for i in self.urldict.values() ] )
 
     def processPages(self, dirpath):
+        """Processes all the pages fetched with the countWork() method.
+        Saves all results into the directory described by 'dirpath'.
+        Directories inside the given directory might be created.
+        Exceptions:
+            NetworkError: if there is no network connection"""
         proc = Processor()
 
         for key in self.urldict.keys():
