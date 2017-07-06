@@ -1,25 +1,67 @@
-import sys
+import sys, time
 from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
     QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QSizePolicy
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 
 class Worker(QThread):
-
-    def __init__(self):
-        pass
+    DO_NOTHING = 0
+    LOG_IN = 1
+    COUNT_WORK = 2
+    DO_WORK = 3
     
+    onProgress = pyqtSignal(int)
+
+    def __init__(self, parent = None):
+        QThread.__init__(self, parent)
+        
+        self.shouldExit = False
+        self.loginSuccess = False
+        self.workCount = 0
+        self.type = Worker.DO_NOTHING
+
     def logIn(self, user, password):
-        pass
+        self.type = Worker.LOG_IN
+        self.loginSuccess = False
+        self.start()
 
     def countWork(self):
-        pass
+        self.type = Worker.COUNT_WORK
+        self.workCount = 0
+        self.start()
 
     def processPages(self):
-        pass
+        self.type = Worker.DO_WORK
+        self.start()
+
+    def getState(self):
+        return self.type
+
+    def getLoginSuccess(self):
+        return self.loginSuccess
+
+    def getWorkCount(self):
+        return self.workCount
+
+    def run(self):
+        if self.type == Worker.DO_NOTHING:
+            time.sleep(1)
+        elif self.type == Worker.LOG_IN:
+            time.sleep(1)
+            self.loginSuccess = True
+        elif self.type == Worker.COUNT_WORK:
+            time.sleep(1)
+            self.workCount = 5
+        elif self.type == Worker.DO_WORK:
+            for i in range(self.workCount):
+                time.sleep(1)
+                self.onProgress.emit(i+1)
+        else:
+            pass
 
     def __del__(self):
-        pass
+        self.shouldExit = True
+        self.wait()
 
 class ElfWindow(QWidget):
     def __init__(self):
@@ -76,13 +118,23 @@ class ElfWindow(QWidget):
         formbox.setContentsMargins(0, 20, 0, 10)
 
         # Set info box
-        info_lbl = QLabel("Information here")
-        info_lbl.setAlignment(Qt.AlignCenter)
-        info_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        login_lbl = QLabel("")
+        login_lbl.setAlignment(Qt.AlignCenter)
+        login_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        count_lbl = QLabel("")
+        count_lbl.setAlignment(Qt.AlignCenter)
+        count_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+        work_lbl = QLabel("")
+        work_lbl.setAlignment(Qt.AlignCenter)
+        work_lbl.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
 
         infobox = QVBoxLayout()
         infobox.setAlignment(Qt.AlignCenter)
-        infobox.addWidget(info_lbl)
+        infobox.addWidget(login_lbl)
+        infobox.addWidget(count_lbl)
+        infobox.addWidget(work_lbl)
 
         # Fill main box
         main_box = QVBoxLayout(self)
@@ -100,7 +152,14 @@ class ElfWindow(QWidget):
         self.utxt = utxt
         self.btn = btn
         self.headerlbl = headerlbl
-        self.info_lbl = info_lbl
+        self.login_lbl = login_lbl
+        self.count_lbl = count_lbl
+        self.work_lbl = work_lbl
+
+        # Set up worker thread
+        self.thread = Worker()
+        self.thread.finished.connect(self.joinThread)
+        self.thread.onProgress.connect(self.updateWorkLabel)
 
         self.show()
         self.showInfoBox(False)
@@ -112,6 +171,7 @@ class ElfWindow(QWidget):
         self.move(frame.topLeft())
 
     def showLogBox(self, show):
+        QWidget.setFocus(self.utxt)
         self.plbl.setVisible(show)
         self.ulbl.setVisible(show)
         self.ptxt.setVisible(show)
@@ -120,31 +180,59 @@ class ElfWindow(QWidget):
         self.btn.setVisible(show)
 
     def showInfoBox(self, show):
-        self.info_lbl.setVisible(show)
+        self.login_lbl.setVisible(show)
+        self.count_lbl.setVisible(show)
+        self.work_lbl.setVisible(show)
 
-    def finishCountWork(self, webpages):
-        # Process all webpages in another thread, calling updateProgress() when convenient
-        # Call finishProcessing() after thread runs
-        pass
+    def onClick(self):
+        self.showLogBox(False)
+        
+        self.login_lbl.setText("Realizando <i>log in</i>...")
+        self.login_lbl.show()
+        
+        self.thread.logIn(self.utxt.text(), self.ptxt.text())
 
-    def finishLogIn(self, isSuccess):
-        if isSuccess:
-            # Attempt to count work in another thread
-            # call finishCountWork after the thread runs
+    def joinThread(self):
+        state = self.thread.getState()
+        if state == Worker.LOG_IN:
+            self.finishLogIn()
+        elif state == Worker.COUNT_WORK:
+            self.finishCountWork()
+        elif state == Worker.DO_WORK:
+            self.finishProcessing()
             pass
         else:
             pass
 
-    def onClick(self):
-        self.showLogBox(False)
-
-        # Attempt log in in another thread
-        # call finishLogIn( result ) after the thread runs
-
-        print(self.utxt.text())
-        print(self.ptxt.text())
+    def finishLogIn(self):
         self.utxt.clear()
         self.ptxt.clear()
+
+        if self.thread.getLoginSuccess():
+            self.login_lbl.setText("<i>Log in</i> realizado com sucesso.")
+            self.count_lbl.setText("Contando a quantidade de trabalho a ser realizada...")
+            self.count_lbl.show()
+            self.thread.countWork()
+        else:
+            self.loginlbl.setText("Falha ao realizar o <i>log in</i>.")
+
+    @pyqtSlot(int)
+    def updateWorkLabel(self, num):
+        self.work_lbl.setText(self.work_string.format(num))
+
+    def finishCountWork(self):
+        # Process all webpages in another thread, calling updateProgress() when convenient
+        # Call finishProcessing() after thread runs
+        count = self.thread.getWorkCount()
+        self.count_lbl.setText("Número de páginas a serem processadas: {}".format(count))
+        self.work_string = "Processando páginas... ({}/{})".format("{}", count)
+        self.updateWorkLabel(0)
+        self.work_lbl.show()
+        self.thread.processPages()
+
+    def finishProcessing(self):
+        self.showInfoBox(False)
+        self.showLogBox(True)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
