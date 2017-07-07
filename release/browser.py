@@ -1,5 +1,6 @@
 from requests import Session
 import os
+import sys
 
 from processor import Processor, Webpage
 
@@ -16,7 +17,9 @@ class AuthError(Exception):
 class Browser:
     """Class for browing around the Allims website"""
 
-    login_url = "http://administrador.paqlf.allims.com.br/"
+    init_url = "http://administrador.paqlf.allims.com.br/"
+    login_url = "http://administrador.paqlf.allims.com.br/controller/login_controle.php"
+    home_url = 'http://administrador.paqlf.allims.com.br/laboratorio'
 
     def __init__(self):
         self.values = {
@@ -24,9 +27,11 @@ class Browser:
                 'senha': "" }
         
         self.headers = {}
-        self.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17"
+        self.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+        self.headers['X-Requested-With'] = 'XMLHttpRequest'
 
         self.session = Session()
+        self.session.get(Browser.init_url, headers=self.headers)
 
         self.urldict = {}
     
@@ -37,14 +42,16 @@ class Browser:
             AuthError: if user/pass combination is wrong"""
         self.values['email'] = user
         self.values['senha'] = pwd
+        self.values['acao'] = 'logar'
 
         try:
             res = self.session.post(Browser.login_url, headers=self.headers, data=self.values)
+            res = self.session.get(Browser.home_url, headers=self.headers)
         except:
             raise NetworkError()
 
-        # The log in failure detection condition will consider if whether we've been redirected or not
-        if res.url == Browser.login_url:
+        # The log in failure detection condition will consider whether we managed to reach home_url or not
+        if res.url != Browser.home_url:
             raise AuthError()
 
     def countWork(self):
