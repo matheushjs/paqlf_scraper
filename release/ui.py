@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget,\
 from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 
-from browser import Browser, NetworkError, AuthError
+from browser import *
 
 class Worker(QThread):
     """Worker thread that should do all the network work"""
@@ -19,30 +19,33 @@ class Worker(QThread):
 
     def __init__(self, parent = None):
         QThread.__init__(self, parent)
+
+        self.browser = Browser()
         
-        self.shouldExit = False
-        self.success = False
+        self.error = ""
         self.workCount = 0
         self.type = Worker.DO_NOTHING
+
+        self.user = ""
+        self.password = ""
 
     def logIn(self, user, password):
         """Attempts to log in the Allims website."""
         self.type = Worker.LOG_IN
-        self.success = False
+        self.user = user
+        self.password = password
         self.start()
 
     def countWork(self):
         """Counts how many pages need to be processed in the Allims website"""
         self.type = Worker.COUNT_WORK
         self.workCount = 0
-        self.success = False
         self.start()
 
     def processPages(self, path):
         """Processes all pages that were gotten in the countWork() method"""
         self.type = Worker.DO_WORK
         self.path = path
-        self.success = False
         self.start()
 
     def getState(self):
@@ -50,9 +53,10 @@ class Worker(QThread):
         The state represents the last task performed."""
         return self.type
 
-    def getSuccess(self):
-        """Returns whether the last task performed was successful or not"""
-        return self.success
+    def getErrorMessage(self):
+        """Returns the error message from last task performed.
+        If there was no error, returns an empty string"""
+        return self.error
 
     def getWorkCount(self):
         """Returns the number of pages that need to be processed.
@@ -61,26 +65,40 @@ class Worker(QThread):
 
     def run(self):
         """Do some work, based on the current state (type) of the thread"""
-        if self.type == Worker.DO_NOTHING:
-            time.sleep(1)
-        elif self.type == Worker.LOG_IN:
-            time.sleep(1)
-            self.success = True
+        self.error = ""
+
+        if self.type == Worker.LOG_IN:
+            try:
+                self.browser.logIn(self.user, self.password)
+            except Exception as e:
+                self.error = str(e)
+            except:
+                self.error = "Não identificado."
+
         elif self.type == Worker.COUNT_WORK:
-            time.sleep(1)
-            self.workCount = 5
-            self.success = True
+            try:
+                self.pages = self.browser.countWork()
+                self.workCount = len(self.pages)
+            except Exception as e:
+                self.error = str(e)
+            except:
+                self.success = "Não identificado."
+
         elif self.type == Worker.DO_WORK:
+            
             for i in range(self.workCount):
-                time.sleep(1)
+                try:
+                    self.browser.processPages(self.pages[i], self.path)
+                except Exception as e:
+                    if not self.error:
+                        self.error = str(e)
+                    self.error = self.error + "\n\nNão foi possível processar o laboratório: " + self.pages[i].name
+                except:
+                    self.error = "Não identificado"
                 self.onProgress.emit(i+1)
-            self.success = True
+
         else:
             pass
-
-    def __del__(self):
-        self.shouldExit = True
-        self.wait()
 
 class ElfWindow(QWidget):
     def __init__(self):
@@ -253,7 +271,8 @@ class ElfWindow(QWidget):
         self.utxt.clear()
         self.ptxt.clear()
 
-        if self.thread.getSuccess():
+        error = self.thread.getErrorMessage()
+        if not error:
             self.login_lbl.setText("<i>Log in</i> realizado com sucesso.")
             self.count_lbl.setText("Contando a quantidade de trabalho a ser realizada...")
             self.count_lbl.show()
@@ -264,7 +283,8 @@ class ElfWindow(QWidget):
             self.showLogBox(True)
             self.alertUser("<h3>Falha ao realizar o <i>log in</i></h3>"
                     + "<p>Verifique seu usuário e senha.</p>"
-                    + "<p>Verifique também a sua conexão.</p>")
+                    + "<p>Verifique também a sua conexão.</p>"
+                    + "<p>Mensagem de Erro: " + error + "</p>")
 
     @pyqtSlot(int)
     def updateWorkLabel(self, num):
@@ -274,12 +294,14 @@ class ElfWindow(QWidget):
         self.progress.setValue(num)
 
     def finishCountWork(self):
-        """Method called whenever the worker thread has finished the countWorK() procedure"""
-        if not self.thread.getSuccess():
+        """Method called whenever the worker thread has finished the countWork() procedure"""
+        error = self.thread.getErrorMessage()
+        if error:
             self.showInfoBox(False)
             self.showLogBox(True)
             self.alertUser("<h3>Falha ao realizar a contagem de páginas a processar</h3>"
-                    + "<p>Verifique a sua conexão.</p>")
+                    + "<p>Verifique a sua conexão.</p>"
+                    + "<p>Mensagem de Erro: " + error + "</p>")
             return
 
         count = self.thread.getWorkCount()
@@ -308,9 +330,12 @@ class ElfWindow(QWidget):
         # Show the log in screen again
         self.showInfoBox(False)
         self.showLogBox(True)
-        if not self.thread.getSuccess():
+        
+        error = self.thread.getErrorMessage()
+        if error:
             self.alertUser("<h3>Falha ao processar as páginas do <i>website</i></h3>"
-                    + "<p>Verifique a sua conexão.</p>")
+                    + "<p>Verifique a sua conexão.</p>"
+                    + "<p>Mensagem de Erro: " + error + "</p>")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -2,17 +2,25 @@ from requests import Session
 import os
 import sys
 
-from processor import Processor, Webpage
+from processor import *
 
 class NetworkError(Exception):
     """Convenient exception to show when there is no internet connection"""
-    def __init__(self):
-        super().__init__(self)
+    def __init__(self, error="Erro na conexão com a internet"):
+        self.error = error
+        super().__init__(self, error)
+
+    def __str__(self):
+        return self.error
 
 class AuthError(Exception):
     """Convenient exception to show when the user/pass authentication was wrong"""
-    def __init__(self):
-        super().__init__(self)
+    def __init__(self, error="Erro de autenticação"):
+        self.error = error
+        super().__init__(self, error)
+
+    def __str__(self):
+        return self.error
 
 class Browser:
     """Class for browing around the Allims website"""
@@ -31,9 +39,8 @@ class Browser:
         self.headers['X-Requested-With'] = 'XMLHttpRequest'
 
         self.session = Session()
-        self.session.get(Browser.init_url, headers=self.headers)
 
-        self.urldict = {}
+        self.webpages = []
     
     def logIn(self, user, pwd):
         """Attempts to log in Allims website.
@@ -45,6 +52,7 @@ class Browser:
         self.values['acao'] = 'logar'
 
         try:
+            res = self.session.get(Browser.init_url, headers=self.headers)
             res = self.session.post(Browser.login_url, headers=self.headers, data=self.values)
             res = self.session.get(Browser.home_url, headers=self.headers)
         except:
@@ -55,46 +63,51 @@ class Browser:
             raise AuthError()
 
     def countWork(self):
-        """Fetches all webpages that need to be processed, and return the amount fetched.
+        """Fetches all webpages that need to be processed, and return them.
         Exceptions:
-            NetworkError: if there is no network connection"""
-        self.urldict = {} # Reset the variable
-        
-        # There should be 4 root pages
-        # Each root page has a bunch of pages that lead to samples spreadsheets
-        # We have to add the URL for these samples spreadsheets to a list
+            NetworkError: if there is no network connection
+            Exception: if BeautifulSoup fails to parse the response html"""
 
-        # Return the amount of webpages in the list
-        return sum( [ len(i) for i in self.urldict.values() ] )
+        try:
+            res = self.session.get(Browser.home_url, headers=self.headers)
+        except:
+            raise NetworkError()
 
-    def processPages(self, dirpath):
+        proc = Processor()
+
+        try:
+            self.webpages = proc.extractPages(res.text)
+        except:
+            raise Exception("Não foi possível processar a página recebida.")
+
+        return self.webpages
+
+    def processPages(self, page, dirpath):
         """Processes all the pages fetched with the countWork() method.
         Saves all results into the directory described by 'dirpath'.
         Directories inside the given directory might be created.
         Exceptions:
-            NetworkError: if there is no network connection"""
+            NetworkError: if there is no network connection
+            Exception: if BeautifulSoup fails to parse the response html"""
         proc = Processor()
+        outfile = os.path.join(dirpath, page.name + ".csv")
 
-        for key in self.urldict.keys():
-            newdir = os.path.join(dirpath, key)
-            os.mkdir(newdir)
-            
-            for webpage in self.urldict[key]:
-                # Make the file name
-                # outfile = os.path.join(newdir, )
-                # process the webpage and save in the file
-                outfile = os.path.join(newdir, webpage.name + ".csv")
-
-                # Make a GET request for the webpage
-                try:
-                    res = self.session.get(webpage.url, headers=self.headers)
-                except:
-                    raise NetworkError()
-                proc.extractSpreadsheet(res.text, outfile)
+        # Make a GET request for the webpage
+        try:
+            res = self.session.get(page.url, headers=self.headers)
+        except:
+            raise NetworkError()
+        
+        try:
+            proc.extractSpreadsheet(res.text, outfile)
+        except:
+            raise Exception("Não foi possível processar a página recebida.")
 
     def __del__(self):
-        self.session.close()
-
+        try:
+            self.session.close()
+        except:
+            pass
 
 if __name__ == "__main__":
     br = Browser()
