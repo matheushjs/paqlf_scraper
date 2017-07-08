@@ -92,7 +92,7 @@ class Worker(QThread):
                 except Exception as e:
                     if not self.error:
                         self.error = str(e)
-                    self.error = self.error + "\n\nNão foi possível processar o laboratório: " + self.pages[i].name
+                    self.error = self.error + "\nNão foi possível processar o laboratório: " + self.pages[i].name
                 except:
                     self.error = "Não identificado"
                 self.onProgress.emit(i+1)
@@ -333,9 +333,15 @@ class ElfWindow(QWidget):
         
         error = self.thread.getErrorMessage()
         if error:
+            error = error.splitlines()
+            other_errors = []
+            if len(error) > 1:
+                other_errors = ["<p>" + e + "</p>" for e in error[1:]]
+
             self.alertUser("<h3>Falha ao processar as páginas do <i>website</i></h3>"
                     + "<p>Verifique a sua conexão.</p>"
-                    + "<p>Mensagem de Erro: " + error + "</p>")
+                    + "<p>Mensagem de Erro: " + error[0] + "</p>"
+                    + ''.join(other_errors))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
