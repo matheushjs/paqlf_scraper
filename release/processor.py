@@ -35,7 +35,7 @@ class Processor:
         # Extract the spreadsheet's content
         content = []
         for tx in soup.tbody.find_all('tr'):
-            content.append([txx.string for txx in tx.find_all('td')])
+            content.append([txx.string.replace('*','').strip() for txx in tx.find_all('td')])
 
         # Save spreadsheet to file
         with open(outpath, 'w') as fp:
@@ -58,7 +58,9 @@ class Processor:
             
             lab = '_'.join(lab.strip().split())
             lab = lab.replace('-', '_')
-            lab = lab.replace('.', '')
+            lab = lab.replace('.', '_')
+            lab = lab.replace('/', '_')
+            lab = lab.replace('\\', '_')
 
             name = number.strip() + "_" + lab
             page = Webpage(name, Processor.root_url + sample_url)
