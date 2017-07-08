@@ -74,6 +74,7 @@ class Browser:
             raise NetworkError()
 
         proc = Processor()
+        res.encoding = 'utf8'
 
         try:
             self.webpages = proc.extractPages(res.text)
@@ -97,7 +98,9 @@ class Browser:
             res = self.session.get(page.url, headers=self.headers)
         except:
             raise NetworkError()
-        
+       
+        res.encoding = 'utf8'
+
         try:
             proc.extractSpreadsheet(res.text, outfile)
         except:
