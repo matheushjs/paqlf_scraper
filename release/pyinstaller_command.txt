@@ -1,0 +1,1 @@
+pyinstaller --hidden-import=queue paqlf_scraper.py
